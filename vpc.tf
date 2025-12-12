@@ -30,15 +30,15 @@ resource "aws_internet_gateway" "IGW" {
 # Public subnets - us-east-1
 
 resource "aws_subnet" "public" {
-  count                   = length(var.public_subnet_cidr)
+  count                   = length(var.public_subnet_cidrs)
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr[count.index]
+  cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = local.az_names[count.index]
   map_public_ip_on_launch = true
 
 
   tags = merge(
-    var.public_subnet_cidr_tags,
+    var.public_subnet_cidrs_tags,
     local.common_tags,
     {
       Name = "${var.project}-${var.environment}-public-${local.az_names[count.index]}"
@@ -49,15 +49,15 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count             = length(var.private_subnet_cidr)
+  count             = length(var.private_subnet_cidrs)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidr[count.index]
+  cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = local.az_names[count.index]
 
 
 
   tags = merge(
-    var.private_subnet_cidr_tags,
+    var.private_subnet_cidrs_tags,
     local.common_tags,
     {
       Name = "${var.project}-${var.environment}-private-${local.az_names[count.index]}"
@@ -69,15 +69,15 @@ resource "aws_subnet" "private" {
 
 
 resource "aws_subnet" "database" {
-  count             = length(var.database_subnet_cidr)
+  count             = length(var.database_subnet_cidrs)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.database_subnet_cidr[count.index]
+  cidr_block        = var.database_subnet_cidrs[count.index]
   availability_zone = local.az_names[count.index]
 
 
 
   tags = merge(
-    var.database_subnet_cidr_tags,
+    var.database_subnet_cidrs_tags,
     local.common_tags,
     {
       Name = "${var.project}-${var.environment}-database-${local.az_names[count.index]}"
@@ -133,7 +133,7 @@ resource "aws_route_table" "public" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
   tags = merge(
-    var.public_route_tags,
+    var.private_route_tags,
     local.common_tags,
 
     {
@@ -146,7 +146,7 @@ resource "aws_route_table" "private" {
 resource "aws_route_table" "database" {
   vpc_id = aws_vpc.main.id
   tags = merge(
-    var.public_route_tags,
+    var.database_route_tags,
     local.common_tags,
 
     {
@@ -157,10 +157,10 @@ resource "aws_route_table" "database" {
 }
 
 
-resource "aws_route" "public" {                           # Creating a route inside a route table
-  route_table_id         = aws_route_table.public.id      # Which route table to update
-  destination_cidr_block = "0.0.0.0/0"                    # Destination: all internet traffic
-  nat_gateway_id         = aws_nat_gateway.nat_gateway.id # Send traffic through NAT Gateway
+resource "aws_route" "public" {                        # Creating a route inside a route table
+  route_table_id         = aws_route_table.public.id   # Which route table to update
+  destination_cidr_block = "0.0.0.0/0"                 # Destination: all internet traffic
+  gateway_id             = aws_internet_gateway.IGW.id # Send traffic through NAT Gateway
 }
 
 resource "aws_route" "private" {                          # Creating a route inside a route table
@@ -178,19 +178,19 @@ resource "aws_route" "database" {                         # Creating a route ins
 
 
 resource "aws_route_table_association" "public" {
-  count          = length(var.public_subnet_cidr)
+  count          = length(var.public_subnet_cidrs)
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
 
 resource "aws_route_table_association" "private" {
-  count          = length(var.private_subnet_cidr)
+  count          = length(var.private_subnet_cidrs)
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
 
 resource "aws_route_table_association" "database" {
-  count          = length(var.database_subnet_cidr)
+  count          = length(var.database_subnet_cidrs)
   subnet_id      = aws_subnet.database[count.index].id
   route_table_id = aws_route_table.database.id
 }
